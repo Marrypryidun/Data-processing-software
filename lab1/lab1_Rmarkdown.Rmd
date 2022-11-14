@@ -40,7 +40,8 @@ print(tail6)
 
 #Question 6. How many missing values are in the “Ozone” column of this data frame?
 ```{r}
-which(is.na(airquality$Ozone))
+miss <- is.na(airquality[, "Ozone"])  ## A vector of TRUE/FALSE
+sum(miss)
 ```
 
 #Question 7. What is the mean of the “Ozone” column in this dataset? Exclude missing values (coded as NA) from this calculation.
@@ -50,8 +51,7 @@ mean ( airquality$Ozone, na.rm  =  TRUE )
 
 #Question 8. Extract the subset of rows of the data frame where Ozone values are above 31 and Temp values are above 90.
 ```{r}
-identify_rows <- airquality$Ozone >  31  & airquality$Ozone <  90
-identify_rows
+subset(airquality, Ozone > 31 & Temp > 90)
 ```
 
 #Question 9. Use a for loop to create a vector of length 6 containing the mean of each column in the data frame (excluding all missing values).
@@ -65,7 +65,7 @@ means
 
 #Question 10. Use the apply function to calculate the standard deviation of each column in the data frame (excluding all missing values).
 ```{r}
-apply(airquality, 2, sd)
+apply(airquality, 2, sd, na.rm = TRUE)
 ```
 #Question 11. Calculate the mean of “Ozone” for each Month in the data frame and create a vector containing the monthly means (exclude all missing values).
 ```{r}
