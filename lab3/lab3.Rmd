@@ -1,0 +1,102 @@
+---
+title: "lab3"
+author: "m.pryidun"
+date: "2022-11-15"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Task 3. Tidying data
+
+Data
+Dataset hike_data.rds contains information about hiking routes from (Washington Trail
+Association)[https://www.wta.org/go-outside/hikes?b_start:int=1].
+Data contains the next columns:
+name character Name of trail
+location character Location of Trail
+length character Length of trail (note that most have miles included)
+gain character Gain in elevation (Feet above sea level)
+highpoint character Highest point in feet above
+sea level
+rating character User submitted rating (out of 5)
+features character Features
+description character Description of trail
+```{r}
+input_data <- readRDS("hike_data.rds")
+#input_data
+```
+
+Tidying dataset
+Create a new dataset clean_hike_trails with the next updates:
+1. Convert columns gain, highpoint, rating to numeric values.
+```{r}
+clean_hike_trails<- transform(input_data, gain = as.numeric(gain), highpoint = as.numeric(highpoint), rating = as.numeric(rating))
+```
+
+2. Add new column trip with the type of trip from column length (“roundtrip”, “trails”,
+“one-way”).
+```{r}
+#install.packages("stringr")
+library("stringr")
+splited_column_lenth<-str_split_fixed(input_data$length, ",",2)
+clean_hike_trails$type_of_trip <-splited_column_lenth[, 2]
+clean_hike_trails$type_of_trip
+```
+
+3. Add new column length_total with the route length from column length, considering
+that for “one-way” trip you must double the route length.
+```{r}
+clean_hike_trails$length_total <- ifelse( 
+  splited_column_lenth[, 2]=='one-way',
+  splited_column_lenth[, 1]*2,  
+  splited_column_lenth[, 1]   
+)
+clean_hike_trails$length_total
+```
+
+4. Add new column location_general with location from column location (a part before
+“–”).
+```{r}
+clean_hike_trails$location_general<-sapply(strsplit(input_data$location, "-"), "[", 1)
+
+clean_hike_trails$location_general
+```
+
+5. Add column id with row number
+```{r}
+clean_hike_trails$ID <- seq.int(nrow(clean_hike_trails))
+clean_hike_trails$ID
+```
+
+
+Questioning dataset
+Question 1. How many routes have rating more than 4.9
+```{r}
+length(which(clean_hike_trails$rating >4.9))
+```
+
+Question 2. How many routes are “Good for kids” (hint: you can use (unnest function)?
+
+```{r}
+v<-unlist(clean_hike_trails$features)
+sum(str_detect(v, 'Good for kids'))
+```
+
+Question 3. Which unique features can routes have?
+```{r}
+unique(v)
+```
+
+Question 4. What is the most common rating of a route?
+```{r}
+tail(names(sort(table(clean_hike_trails$rating))), 1)
+```
+
+Question 5. Your own question and answer.The highest heightpoint.
+```{r}
+max(clean_hike_trails$highpoint)
+```
+
