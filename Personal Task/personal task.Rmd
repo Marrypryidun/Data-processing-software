@@ -1,0 +1,133 @@
+---
+title: "personal task"
+author: "m.pryidun"
+date: "2022-11-21"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Sentiment Analysis 
+ Sentiment analysis of five different novels using dataset was published in Saif M. Mohammad and Peter Turney (2013), Crowdsourcing a Word-Emotion Association Lexicon.
+
+
+Install packages
+
+```{r}
+# install packages
+# install.packages("dplyr")
+#install.packages("stringr")
+#install.packages("tidyr")
+#install.packages("tibble")
+#install.packages("tidytext")
+#install.packages("textdata")
+#install.packages("Hmisc")
+#install.packages("sentimentr")
+#install.packages("zoo")
+#install.packages("flextable")
+#install.packages("remotes")
+#remotes::install_github("rlesur/klippy")
+```
+
+```{r}
+# activate packages
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(tibble)
+library(tidytext)
+library(textdata)
+library(Hmisc)
+library(sentimentr)
+library(zoo)
+library(flextable)
+# activate klippy for copy-to-clipboard button
+klippy::klippy()
+```
+
+## Read data
+
+Load five pieces of literature:
+
+```{r pressure, echo=FALSE}
+darwin <- base::readRDS(url("https://slcladal.github.io/data/origindarwin.rda", "rb"))
+twain <- base::readRDS(url("https://slcladal.github.io/data/twainhuckfinn.rda", "rb"))
+orwell <- base::readRDS(url("https://slcladal.github.io/data/orwell.rda", "rb"))
+lovecraft <- base::readRDS(url("https://slcladal.github.io/data/lovecraftcolor.rda", "rb"))
+```
+
+## Clean data
+
+Write function to clean data
+
+```{r}
+txtclean <- function(x, title){
+  require(dplyr)
+  require(stringr)
+  require(tibble)
+  x <- x %>%
+    iconv(to = "UTF-8") %>%
+    base::tolower() %>%
+    paste0(collapse = " ") %>%
+    stringr::str_squish()%>%
+    stringr::str_split(" ") %>%
+    unlist() %>%
+    tibble::tibble() %>%
+    dplyr::select(word = 1, everything()) %>%
+    dplyr::mutate(novel = title) %>%
+    dplyr::anti_join(stop_words) %>%
+    dplyr::mutate(word = str_remove_all(word, "\\W")) %>%
+    dplyr::filter(word != "")
+}
+```
+
+Process and clean texts.
+```{r}
+darwin_clean <- txtclean(darwin, "darwin")
+lovecraft_clean <- txtclean(lovecraft, "lovecraft")
+orwell_clean <- txtclean(orwell, "orwell")
+twain_clean <- txtclean(twain, "twain")
+```
+## Data analyzing
+
+Combine the data with the Word-Emotion Association Lexicon
+
+```{r}
+novels_anno <- rbind(darwin_clean, twain_clean, orwell_clean, lovecraft_clean) %>%
+  dplyr::group_by(novel) %>%
+  dplyr::mutate(words = n()) %>%
+  dplyr::left_join(tidytext::get_sentiments("nrc")) %>%
+  dplyr::mutate(novel = factor(novel),
+         sentiment = factor(sentiment))
+head(novels_anno,10)
+```
+Summarize the results of the SA and calculate the percentages of the prevalence of emotions across the books
+
+```{r}
+novels <- novels_anno %>%
+  dplyr::group_by(novel) %>%
+  dplyr::group_by(novel, sentiment) %>%
+  dplyr::summarise(sentiment = unique(sentiment),
+                   sentiment_freq = n(),
+                   words = unique(words)) %>%
+  dplyr::filter(is.na(sentiment) == F) %>%
+  dplyr::mutate(percentage = round(sentiment_freq/words*100, 1))
+head(novels, 10)
+```
+Visualize the results and show the scores fro each core emotion by book.
+```{r}
+novels %>%
+  dplyr::filter(sentiment != "positive",
+         sentiment != "negative") %>%
+  ggplot(aes(sentiment, percentage, fill = novel)) +    
+  geom_bar(stat="identity",   
+           position=position_dodge()) + 
+  scale_fill_manual(name = "", values=c("orange", "gray70", "red", "grey30")) +
+  theme_bw() +
+  theme(legend.position = "top")
+```
+
